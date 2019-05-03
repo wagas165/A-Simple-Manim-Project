@@ -14,7 +14,7 @@ from big_ol_pile_of_manim_imports import *
 DEFAULT_ROUTE_WIDTH = 8
 DEFAULT_ROUTE_ORIGINAL_RADIUS_RATIO = 3 # the ratio of the inner radius and half of the width
 DEFAULT_PLAY_SPEED = 15.0 # widths per second
-DEFAULT_ROUTE_OPACITY = 0.4######
+DEFAULT_ROUTE_OPACITY = 0.6######
 #DEFAULT_OUTER_RING_WIDTH_FACTOR = 1.25
 #DEFAULT_INNER_RING_WIDTH_FACTOR = 0.75
 DEFAULT_FADE_FACTOR = 3.0
@@ -266,7 +266,7 @@ class BendedRoute(Arc):
 
 # Make the data globally. For each of the station, there are two keys concerned.
 # dict_key: the to-extend coordinate of the station and positive_direction as a boolean as a tuple
-# dict_value: the background of the station as a VGroup,
+# dict_value: the background of the station as a VGroup
 global_station_backgrounds_data = {}
 
 # Config a single station.
@@ -279,8 +279,6 @@ class ConfigStation(object):
         "station_stroke_color": None,#
         "station_radius_ratio": None,##
         "center_coordinate": None,
-        #"animate_func": (lambda mobject, **kwargs: FadeInFromLarge(mobject, scale_factor=DEFAULT_FADE_FACTOR, **kwargs)),
-        #"rate_func": smooth,
         "show_run_time": DEFAULT_SHOW_RUN_TIME,
     }
 
@@ -353,7 +351,7 @@ class ConfigNewStation(ConfigStation):
         self.num_of_components = 1
 
 
-class ConfigGrowStation(ConfigStation):
+class ConfigInterchangeStation(ConfigStation):
     CONFIG = {
         "positive_direction": True,
         "station_stroke_width": DEFAULT_INTERCHANGE_STATION_STROKE_WIDTH,
@@ -397,7 +395,7 @@ class ConfigGrowStation(ConfigStation):
 
     def grow_station(self):
         run_time = self.show_run_time
-        self.new_station = GrowStationBackground(self.old_station, self.positive_direction)
+        self.new_station = self.grow_station_background(self.old_station, self.positive_direction)
         self.new_point = SetPoint(self.station_coordinate, self.station_color, self.route_width, self.point_radius_ratio)
         self.components = [(self.old_station, self.new_station), self.new_point]
         #self.components = [(copy.deepcopy(self.old_station), copy.deepcopy(self.new_station)), self.new_point]#
@@ -417,13 +415,13 @@ class ConfigGrowStation(ConfigStation):
             #composed_station = StationGroup(self.new_station.background_part, self.old_point, self.new_point)
             self.new_station.points_part = [self.old_point, self.new_point]
 
-            self.new_station = StationGroup(self.new_station.background_part, *self.new_station.points_part)#
+            #self.new_station = StationGroup(self.new_station.background_part, *self.new_station.points_part)#
             composed_station = StationGroup(self.new_station.background_part, *self.new_station.points_part)
             #composed_station = self.new_station.add(self.old_point, self.new_point)
         else:
             self.num_of_components = 2
             self.new_station.points_part.append(self.new_point)
-            self.new_station = StationGroup(self.new_station.background_part, *self.new_station.points_part)#
+            #self.new_station = StationGroup(self.new_station.background_part, *self.new_station.points_part)#
             composed_station = StationGroup(self.new_station.background_part, *self.new_station.points_part)
             #self.new_station.points_part.append(self.new_point)
             #points = []
@@ -437,10 +435,25 @@ class ConfigGrowStation(ConfigStation):
         for key in self.new_dict_keys:
             global_station_backgrounds_data[key] = composed_station
 
+    def grow_station_background(self, old_station_obj, positive_direction):
+        assert isinstance(old_station_obj, StationGroup)
+        horizontal = old_station_obj.horizontal
+        direction = get_direction(horizontal, positive_direction)
+        center_coordinate = old_station_obj.center_coordinate + direction / 2
+        station_size = old_station_obj.station_size + 1
+        #station_radius_ratio = old_station_obj.station_radius_ratio
+        #route_width = old_station_obj.route_width
+        #station_stroke_width = old_station_obj.station_stroke_width
+        #station_stroke_color = old_station_obj.station_stroke_color
+        #background_color = old_station_obj.background_color
+        self.background_part = SetStationBackground(center_coordinate, station_size, self.station_radius_ratio, self.route_width, self.station_stroke_width, self.station_stroke_color, self.background_color, horizontal)
+        self.points_part = old_station_obj.points_part
+        self.components = StationGroup(self.background_part, *self.points_part)
+        return self.components
+
 
 class SetPoint(Circle):
     def __init__(self, center_coordinate, color, route_width, radius_ratio, **kwargs):
-        # set the radius
         super().__init__(arc_center=change_coordinate(center_coordinate, route_width), radius=change_unit(route_width * radius_ratio / 2), fill_color=color, fill_opacity=1, stroke_width=0, **kwargs)
 
 
@@ -456,10 +469,6 @@ class SetStationBackground(VGroup):
         #self.background_color = background_color
         self.horizontal = horizontal
         ##
-        self.set_components(center_coordinate, station_size, station_radius_ratio, route_width, station_stroke_width, station_stroke_color, background_color, horizontal)
-        super().__init__(*self.components, **kwargs)
-
-    def set_components(self, center_coordinate, station_size, station_radius_ratio, route_width, station_stroke_width, station_stroke_color, background_color, horizontal):
         radius = station_radius_ratio / 2
         half_width = (station_size - 1) / 2
         change = lambda coordinate: change_coordinate(coordinate, route_width)
@@ -484,6 +493,7 @@ class SetStationBackground(VGroup):
                 Arc(start_angle=PI, angle=PI, arc_center=change(down_center), radius=unify(radius), fill_color=background_color, fill_opacity=1, stroke_width=station_stroke_width, stroke_color=station_stroke_color, stroke_opacity=1),
                 Line(change(down_center + radius * PLAIN_RIGHT), change(up_center + radius * PLAIN_RIGHT), stroke_width=station_stroke_width, stroke_color=station_stroke_color, stroke_opacity=1),
             ]
+        super().__init__(*self.components, **kwargs)
 
 
 class StationGroup(VGroup):
@@ -507,33 +517,6 @@ class StationGroup(VGroup):
             background_obj.components.append(point)
         self.components = VGroup(*background_obj.components)
         super().__init__(background_obj, *point_objs)
-
-
-class GrowStationBackground(StationGroup):
-    CONFIG = {
-        "route_width": DEFAULT_ROUTE_WIDTH,
-        "background_color": BLACK,
-        "station_stroke_width": DEFAULT_INTERCHANGE_STATION_STROKE_WIDTH,
-        "station_stroke_color": WHITE,
-        "station_radius_ratio": DEFAULT_INTERCHANGE_STATION_RADIUS_RATIO,
-        "point_radius_ratio": DEFAULT_POINT_RADIUS_RATIO,
-    }#######################################################################
-
-    def __init__(self, old_station_obj, positive_direction, **kwargs):
-        digest_config(self, kwargs)
-        assert isinstance(old_station_obj, StationGroup)
-        horizontal = old_station_obj.horizontal
-        direction = get_direction(horizontal, positive_direction)
-        center_coordinate = old_station_obj.center_coordinate + direction / 2
-        station_size = old_station_obj.station_size + 1
-        #station_radius_ratio = old_station_obj.station_radius_ratio
-        #route_width = old_station_obj.route_width
-        #station_stroke_width = old_station_obj.station_stroke_width
-        #station_stroke_color = old_station_obj.station_stroke_color
-        #background_color = old_station_obj.background_color
-        self.background_part = SetStationBackground(center_coordinate, station_size, self.station_radius_ratio, self.route_width, self.station_stroke_width, self.station_stroke_color, self.background_color, horizontal)
-        self.points_part = old_station_obj.points_part
-        self.components = super().__init__(self.background_part, *self.points_part)
 
 
 ########
@@ -612,11 +595,11 @@ example_route_coordinates2 = np_int(
 example_route2 = ConfigRoute(example_route_coordinates2, color=RED)
 example_stations2 = [
     ConfigNewStation(np_int(30, 55), example_route2),
-    ConfigGrowStation(np_int(36, 42), example_route2, positive_direction=False),
+    ConfigInterchangeStation(np_int(36, 42), example_route2, positive_direction=False),
     ConfigNewStation(np_int(56, 34), example_route2, horizontal=False),
-    ConfigGrowStation(np_int(72, 34), example_route2, positive_direction=False),
+    ConfigInterchangeStation(np_int(72, 34), example_route2, positive_direction=False),
     ConfigNewStation(np_int(84, 34), example_route2),
-    ConfigGrowStation(np_int(93, 45), example_route2, positive_direction=True),
+    ConfigInterchangeStation(np_int(93, 45), example_route2, positive_direction=True),
     ConfigNewStation(np_int(93, 55), example_route2, horizontal=False),
 ]
 example_route_coordinates3 = np_int(
@@ -629,11 +612,11 @@ example_route_coordinates3 = np_int(
 example_route3 = ConfigRoute(example_route_coordinates3, color=GREEN)
 example_stations3 = [
     ConfigNewStation(np_int(108, 54), example_route3),
-    ConfigGrowStation(np_int(93, 54), example_route3, positive_direction=False),
-    ConfigGrowStation(np_int(83, 51), example_route3, positive_direction=False),
-    ConfigGrowStation(np_int(72, 36), example_route3, positive_direction=True),
+    ConfigInterchangeStation(np_int(93, 54), example_route3, positive_direction=False),
+    ConfigInterchangeStation(np_int(83, 51), example_route3, positive_direction=False),
+    ConfigInterchangeStation(np_int(72, 36), example_route3, positive_direction=True),
     ConfigNewStation(np_int(50, 26), example_route3),
-    ConfigGrowStation(np_int(30, 26), example_route3, positive_direction=True),
+    ConfigInterchangeStation(np_int(30, 26), example_route3, positive_direction=True),
     ConfigNewStation(np_int(23, 26), example_route3),
 ]
 example_route_coordinates4 = np_int(
@@ -646,9 +629,9 @@ example_route_coordinates4 = np_int(
 )
 example_route4 = ConfigRoute(example_route_coordinates4, color=YELLOW)
 example_stations4 = [
-    ConfigGrowStation(np_int(38, 42), example_route4, positive_direction=True),
-    ConfigGrowStation(np_int(56, 35), example_route4, positive_direction=True),
-    ConfigGrowStation(np_int(72, 33), example_route4, positive_direction=False),
+    ConfigInterchangeStation(np_int(38, 42), example_route4, positive_direction=True),
+    ConfigInterchangeStation(np_int(56, 35), example_route4, positive_direction=True),
+    ConfigInterchangeStation(np_int(72, 33), example_route4, positive_direction=False),
     ConfigNewStation(np_int(90, 25), example_route4),
 ]
 example_route_coordinates5 = np_int(
@@ -659,9 +642,9 @@ example_route_coordinates5 = np_int(
 )
 example_route5 = ConfigRoute(example_route_coordinates5, color=PURPLE)
 example_stations5 = [
-    ConfigGrowStation(np_int(72, 32), example_route5, positive_direction=False),
-    ConfigGrowStation(np_int(91, 45), example_route5, positive_direction=False),
-    ConfigGrowStation(np_int(85, 51), example_route5, positive_direction=True),
+    ConfigInterchangeStation(np_int(72, 32), example_route5, positive_direction=False),
+    ConfigInterchangeStation(np_int(91, 45), example_route5, positive_direction=False),
+    ConfigInterchangeStation(np_int(85, 51), example_route5, positive_direction=True),
     ConfigNewStation(np_int(70, 51), example_route5),
 ]
 
