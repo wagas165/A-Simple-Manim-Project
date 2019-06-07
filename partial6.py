@@ -7,6 +7,10 @@ from big_ol_pile_of_manim_imports import *
 # Add BackGroundRectangle to the station_name.
 # Set show_name(boolean) as an option.
 
+# tex_mobject.py line 60, use reduce for piles of and & or
+# Rename AnimateStation, PersonalizedCoordinateSystem
+# Sort the classes
+
 
 # The rate between unit and stroke_width is simply 100:1.
 DEFAULT_UNIT_AND_STROKE_RATIO = 100
@@ -641,8 +645,8 @@ class AnimateStation(PersonalizedCoordinateSystem):
             self.get_animation(
                 self.interchange_station_name_animation,
                 [old_name, new_name],
-                self.time_point - self.show_run_time,
-                self.time_point
+                self.time_point - 2 * self.show_run_time,
+                self.time_point - self.show_run_time
             )
         ])
         return self
@@ -801,7 +805,7 @@ example_route_coordinates3 = np_int(
 example_stations3 = [
     [np_int(108, 54), True, "Station 16", UP, np.array([0.0, -1.0])],
     [np_int(93, 54), None, "Station 15", DL, np.array([1.0, 0.0])],
-    [np_int(83, 51), None, "Station 08", UP, np.array([-1.0, 0.0])],
+    [np_int(83, 51), None, "Station 08", UP, np.array([0.0, -1.0])],
     [np_int(72, 36), None, "Station 06", UP, np.array([0.0, -2.0])],
     [np_int(50, 26), True, "Station 17", UP, np.array([0.0, -1.0])],
     [np_int(30, 26), None, "Station 02", UL, np.array([1.0, 0.0])],
